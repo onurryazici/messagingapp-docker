@@ -1,0 +1,7 @@
+FROM node:14.14.0-alpine
+WORKDIR /app
+COPY ./package.json ./
+COPY . .
+# I don't want to download every time when I build. So I'm copying node_modules folder too for now.
+RUN npm i  
+CMD ["npm","run","start"]

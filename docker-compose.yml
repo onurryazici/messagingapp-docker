@@ -1,0 +1,57 @@
+version: '3.8'
+services:
+  client:
+    stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+    ports:
+      - 3000:3000
+  server:
+    build:
+      dockerfile: Dockerfile
+      context: "./server"
+    env_file: ./.env
+    command: npm start
+    ports: 
+      - $NODE_LOCAL_PORT:$NODE_DOCKER_PORT
+    environment:
+      MYSQL_HOST: $MYSQL_HOST
+    volumes:
+      - /app/node_modules
+      - ./server:/app
+  adminer:
+      image: adminer:latest
+      restart: unless-stopped
+      ports:
+        - "8089:8080"
+      depends_on:
+        - mysql_db
+      environment:
+        ADMINER_DEFAULT_SERVER: mysql_db
+  nginx:
+    depends_on:
+      - server
+      - client
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - "3050:80"
+  mysql_db:
+    image: mysql
+    env_file: ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
+    restart: always
+    volumes:
+      - "./setup.sql:/docker-entrypoint-initdb.d/setup.sql"
+    ports:
+      - $MYSQL_LOCAL_PORT:$MYSQL_DOCKER_PORT
